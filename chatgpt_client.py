@@ -1,14 +1,15 @@
 import httpx
 from openai import OpenAI
+import os
 
 # 初始化消息列表
 messages = []
 
 # 配置 OpenAI 客户端，使用代理
 # client = OpenAI(
-#     api_key = "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",
+#     api_key = "",
 #     http_client=httpx.Client(
-#         proxy="http://127.0.0.1:10809",  # 代理服务器的URL
+#         proxy="",  # 代理服务器的URL
 #         transport=httpx.HTTPTransport(local_address="0.0.0.0"),  # 本地地址配置
 #         verify=False  # 禁用SSL证书验证（不推荐在生产环境中使用）
 #     )
@@ -19,14 +20,12 @@ messages = []
 client = OpenAI(
     # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx",
     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-    api_key="sk-b50059b622b541d0b9a5f193a12d192e",
-    # api_key="sk-56e7956ceb9a4f6194fd0eaff3abe3ad",
-    # base_url="https://api.deepseek.com",
-    http_client=httpx.Client(
-        proxy="http://127.0.0.1:10809",  # 代理服务器的URL
-        transport=httpx.HTTPTransport(local_address="0.0.0.0"),  # 本地地址配置
-        verify=False  # 禁用SSL证书验证（不推荐在生产环境中使用）
-        )
+    api_key = os.getenv("OPENAI_API_KEY"),
+    # http_client=httpx.Client(
+    #     proxy="",  # 代理服务器的URL
+    #     transport=httpx.HTTPTransport(local_address="0.0.0.0"),  # 本地地址配置
+    #     verify=False  # 禁用SSL证书验证（不推荐在生产环境中使用）
+    #     )
 )
 
 
