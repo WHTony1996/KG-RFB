@@ -1,7 +1,6 @@
 from neo4j import GraphDatabase
 import logging
-import vllm_client as vc
-import chatgpt_client as cc
+import chat_client as cc
 
 query_prompt = """I am working with a Neo4j database and would like you to help me construct a Cypher query based on the information I provide. Please generate a syntactically correct Cypher query statement that can be executed directly in the Neo4j environment. Ensure that the query is precise and optimized for performance. I will describe the information I need to retrieve; please make sure the generated Cypher query accurately reflects my requirements.
 Now I'm going to tell you a little bit about this knowledge graph.
