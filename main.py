@@ -1,8 +1,8 @@
 import pdf_extract_text
 import chat_client as cc
-from subNeo4j import csv_refine
-from subNeo4j import txt2json
-from subNeo4j import llm_with_neo4j
+import csv_refine
+import txt2json
+import llm_with_neo4j
 import subprocess
 
 command = """neo4j-admin database import full `
