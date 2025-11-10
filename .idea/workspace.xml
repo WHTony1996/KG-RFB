@@ -5,15 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="bcb08fd2-9bc7-4899-8403-5a8bc4a55551" name="更改" comment="Initial commit">
-      <change afterPath="$PROJECT_DIR$/add-ref.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/json_2_csv.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/txt_2_json.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/csv_refine.py" beforeDir="false" afterPath="$PROJECT_DIR$/csv_refine.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/llm_with_neo4j.py" beforeDir="false" afterPath="$PROJECT_DIR$/llm_with_neo4j.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pdf_extract_text.py" beforeDir="false" afterPath="$PROJECT_DIR$/pdf_extract_text.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/add-ref.py" beforeDir="false" afterPath="$PROJECT_DIR$/subNeo4j/add-ref.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/csv_refine.py" beforeDir="false" afterPath="$PROJECT_DIR$/subNeo4j/csv_refine.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/json_2_csv.py" beforeDir="false" afterPath="$PROJECT_DIR$/subNeo4j/json_2_csv.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,6 +47,7 @@
       <recent name="F:\WORK\flow_battery_pdf\Q&amp;A\KG-RFB" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="F:\WORK\flow_battery_pdf\Q&amp;A\KG-RFB\subNeo4j" />
       <recent name="F:\WORK\flow_battery_pdf\Q&amp;A\KG-RFB" />
     </key>
   </component>
@@ -75,7 +71,7 @@
       <workItem from="1747703442237" duration="67000" />
       <workItem from="1762694356866" duration="405000" />
       <workItem from="1762694789586" duration="265000" />
-      <workItem from="1762695856938" duration="16190000" />
+      <workItem from="1762695856938" duration="17685000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <option name="closed" value="true" />
