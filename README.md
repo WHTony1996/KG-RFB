@@ -20,9 +20,15 @@ The system's workflow is divided into four main phases:
     -   `LangChain` is used to split long texts into manageable chunks.
     -   A Large Language Model (e.g., DeepSeek-v3) is invoked to process each chunk and extract structured knowledge triplets in JSON format.
 
-2.  **Phase 2: Data Refining & Transformation (`csv_refine.py`)**
-    -   All extracted JSON data is consolidated and converted into a master CSV file.
-    -   This script de-duplicates nodes, assigns unique IDs, and formats the data into two main files (`node_new.csv` and `relation_new.csv`) optimized for Neo4j's bulk import.
+2.  **Phase 2: Data Refining & Transformation (`txt_2_json.py`)**
+    This phase implements a data processing pipeline that transforms raw text outputs into structured CSV files, optimized for bulk import into Neo4j. The process involves several key steps:
+
+    -   TXT to JSON Conversion (`txt_2_json.py`)**: The raw `.txt` files containing AI-generated, JSON-like text are parsed. This script intelligently handles common formatting errors and converts each file into a well-structured `.json` file.
+
+    -   JSON to CSV Aggregation (`json_2_csv.py`)**: All individual `.json` files are aggregated. The script extracts the node and relationship data from them and consolidates everything into a single, master CSV file.
+
+    -   Enrichment and Finalization (`add-ref.py`)**: The master CSV is enriched by adding source literature information. A critical de-duplication process is then performed to ensure each node is unique, assigning a unique ID to each. The final output is split into two import-ready files: `node_new.csv` (for unique entities) and `relation_new.csv` (for the relationships between them).
+
 
 3.  **Phase 3: Knowledge Graph Construction (`main.py`)**
     -   The `neo4j-admin database import` command is executed to efficiently load the processed CSV files into the Neo4j database, completing the KG construction.
@@ -35,8 +41,8 @@ The system's workflow is divided into four main phases:
 
 ## Tech Stack
 
--   **Backend**: Python 3.x
--   **Database**: Neo4j (e.g., Community Edition 5.x)
+-   **Backend**: Python 3.12
+-   **Database**: Neo4j (e.g., Community Edition 5.6.1)
 -   **Core Libraries**:
     -   `openai`: For interacting with LLM APIs (compatible with DeepSeek, etc.).
     -   `neo4j`: For connecting to and querying the Neo4j database.
@@ -49,7 +55,6 @@ The system's workflow is divided into four main phases:
 
 ### Prerequisites
 
--   Python 3.8+
 -   Neo4j Desktop or Server installed and running.
 
 ### Installation & Setup
@@ -63,7 +68,7 @@ The system's workflow is divided into four main phases:
 2.  **Install Python Dependencies**
     It is recommended to use a virtual environment:
     ```bash
-    python -m venv venv
+    python -m chat-rfb venv
     source venv/bin/activate  # On Windows use `venv\Scripts\activate`
     pip install pandas neo4j openai langchain-text-splitters "PyPDFLoader[image]" tqdm requests httpx readerwriterlock
     ```    *(You can also create a `requirements.txt` file with the libraries listed above and run `pip install -r requirements.txt`)*
@@ -97,7 +102,7 @@ The system's workflow is divided into four main phases:
 
 5.  **Prepare Your Data**
     -   Place all your source `.pdf` or `.txt` files into a directory.
-    -   **Update the hardcoded paths** in the scripts (especially in `pdf_extract_text.py` and `csv_refine.py`) to point to your data directories. For example, change `F:\WORK\flow_battery_pdf\pdfoutputreview` to your chosen path.
+    -   **Update the hardcoded paths** in the scripts (especially in `txt_2_json.py`,`add-ref.py`,`json_2_csv.py`and `csv_refine.py`) to point to your data directories. For example, change `F:\WORK\flow_battery_pdf\pdfoutputreview` to your chosen path.
 
 ## Usage
 
@@ -119,7 +124,12 @@ The program will display a task menu:
 **Please execute the tasks sequentially (1 -> 2 -> 3 -> 4) for the first run:**
 
 1.  **Enter `1`**: To begin extracting knowledge from your PDF/TXT files. This may take a long time depending on the number of documents.
-2.  **Enter `2`**: To refine the extracted data and generate the CSV files for import.
+2.  **Enter `2`**: To run the multi-step data processing pipeline. This phase cleans the extracted text and generates the final CSV files for import. It involves the following scripts:
+    *   `txt_2_json.py`: Converts the raw text files into structured JSON format, intelligently fixing common errors.
+    *   `json_2_csv.py`: Aggregates all the generated JSON files into a single master CSV file.
+    *   `add-ref.py`: Enriches the master CSV with source information, de-duplicates data, and creates the final `node` and `relation` files ready for import.
+    
+    > **Note:** Please ensure Step 1 is completed before running this pipeline.
 3.  **Enter `3`**: To bulk-import the data into your Neo4j database, building the knowledge graph.
 4.  **Enter `4`**: To launch the interactive Q&A system. You can now ask questions in the console, for example:
     > "What are the advantages of anthraquinone in organic flow batteries?"
