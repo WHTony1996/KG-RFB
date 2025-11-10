@@ -70,7 +70,6 @@ end_node_columns_to_extract = ['end_node_id', 'end_node', 'doi']    # 结点类�
 relation_columns_to_extract = ['start_node_id', 'end_node_id', 'relationship']    # 关系类型
 
 
-
 if __name__ == "__main__":
     # 调用函数进行提取和保存
     # extract_columns_to_csv(input_csv, output_directory, start_node_columns_to_extract, 'start_node')

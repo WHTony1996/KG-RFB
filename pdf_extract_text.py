@@ -1,41 +1,14 @@
 from pathlib import Path
-
 import requests
 import json
 import os
 import logging
 import concurrent.futures
 from threading import Lock
-# from readerwriterlock import rwlock
 from langchain_text_splitters import CharacterTextSplitter
 from tqdm import tqdm
 from langchain_community.document_loaders import PyPDFLoader
-# import torch
 import chat_client as cc
-
-def send_message(prompt, article_text):
-    url = "http://172.19.7.73:43413"
-    headers = {'Content-Type': 'application/json'}
-    data = {
-            "prompt": prompt,
-            "history": article_text,
-        # "model": "Qwen/Qwen2.5-7B-Instruct-AWQ",
-        # "messages": [
-        #     {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
-        #     {"role": "user", "content": "Tell me something about large language models."}
-        # ],
-        "temperature": 0.7,
-        "top_p": 0.8,
-        "repetition_penalty": 1.05,
-        "max_tokens": 512
-    }
-
-    response = requests.post(url, headers=headers, data=data)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print(f"Error: Received status code {response.status_code}")
-        return None
 
 
 def load_PDF(pdf_path):
@@ -51,13 +24,6 @@ def load_PDF(pdf_path):
     return pages
 
 
-def document_to_dict(doc):
-    return {
-        'metadata': doc.metadata,
-        'page_content': doc.page_content
-    }
-
-
 def text_splitter(art_text):
     text = [art_text]
     # Create a TextSplitter instance
@@ -69,11 +35,8 @@ def text_splitter(art_text):
         is_separator_regex=False,
     )
 
-    # 创建文档
+    #Create document
     texts = text_splitter.create_documents(text)
-    # texts = text_splitter.split_text(text=str_text)
-    # print(f'{type(texts)}texts len1: {len(texts)}\n{texts[0]}')
-    # print(f'{type(texts)}texts len2: {len(texts)}\n{texts[1]}')
     print(f"art_text{len(art_text)} text_splitter len is :{len(texts)}")
     return texts
 
@@ -87,8 +50,8 @@ def process_pdf(txt_file, lock, prompt):
     """
     print(f"Processing {txt_file}")
 
-    output_file = Path(r"F:\WORK\flow_battery_pdf\jsonfile_5") / txt_file.name[:-4]
-    # Ensure the target directory exists (create it if it does not exist).
+    current_dir = Path.cwd()
+    output_file = current_dir / txt_file.stem
     output_file.mkdir(parents=True, exist_ok=True)
     article_text =""
     if txt_file.suffix == '.pdf':
@@ -96,14 +59,12 @@ def process_pdf(txt_file, lock, prompt):
     elif txt_file.suffix == '.txt':
         with open(txt_file, 'r', encoding="utf-8") as f:
             article_text = f.read()
-    # article_text.append(prompt)
     texts = text_splitter(article_text)
 
     try:
         for i, text in enumerate(texts):
             article_text_str = str(text)
             print(len(article_text_str))
-            # response_data = send_message(article_text_str, article_text=[])
             message = []
             message.append({'role': 'system', 'content': prompt})
             message.append({'role': 'user', 'content': article_text_str})
@@ -141,7 +102,10 @@ def main():
 
     # Initialize history and add system messages
     # prompt = [system_message]
-    txt_dir = Path(r"F:\WORK\flow_battery_pdf\pdfoutputreview")
+    current_dir = Path.cwd()
+    target_dir_name = "pdfoutputreview"
+    txt_dir = current_dir / target_dir_name
+    txt_dir.mkdir(parents=True, exist_ok=True)
     txt_paths = list(txt_dir.glob("*.txt"))
     # for file in tqdm(txt_paths):
     #     file = str(file)

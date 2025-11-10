@@ -82,7 +82,7 @@ def answer_question(kg_records, question):
     return response
 
 
-if __name__ == "__main__":
+def main():
     cypher_messages = []
     question_messages = []
     # 清空日志文件
@@ -90,7 +90,8 @@ if __name__ == "__main__":
     with open(filename, 'w'):
         pass  # 这将创建一个空文件或清空现有文件
     # 设置日志配置
-    logging.basicConfig(filename=filename, level=logging.INFO, format='%(asctime)s %(filename)s [line:%(lineno)d]  - %(levelname)s - %(message)s')
+    logging.basicConfig(filename=filename, level=logging.INFO,
+                        format='%(asctime)s %(filename)s [line:%(lineno)d]  - %(levelname)s - %(message)s')
 
     question = "Which refenence mentioned anthraquinone for redox flow batteries?"
     while True:
@@ -104,5 +105,10 @@ if __name__ == "__main__":
         query = get_query(question)  # cyphter编辑器模型
         records = run_cypher_query(cypher_query=query)
         answer = answer_question(kg_records=records, question=question)  # kg辅助模型
-
         logging.info(f"answer:\n\t{answer}")
+
+
+if __name__ == "__main__":
+    logging.basicConfig(filename='error.log', level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+    main()
+

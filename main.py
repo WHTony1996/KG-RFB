@@ -4,6 +4,7 @@ import csv_refine
 import txt2json
 import llm_with_neo4j
 import subprocess
+import txt_2_json
 
 command = """neo4j-admin database import full `
        --nodes=Node=C:/Soft/Neo4j/neo4j-community-5.25.1/import/import/node_new.csv `
@@ -45,7 +46,26 @@ if __name__ == "__main__":
             if task_num == 1:
                 pdf_extract_text.main()
             elif task_num == 2:
-                csv_refine.extract_columns_to_csv()
+                # --- Configuration---
+                # Please replace the following path with the directory path where the. txt file you want to process is located
+                # For example: target-directory=r "C: \ Users \ YourUser \ Documents \ MyJsonTxts"
+                # Alternatively, in Linux/macOS: target-directory="/home/Youruser/documents/myjsontxts"
+                target_directory = input("Please enter the directory path of TXT file:").strip()
+                # target_directory  = r"F:\WORK\flow_battery_pdf\jsonfile_4"
+                filePath = [f for f in Path(target_directory).iterdir() if f.is_dir()]
+
+                # --- Ensure backup of important data before operation ---
+                print("\nThis script will read a. txt file and attempt to create a. json file.")
+                print("If a. json file with the same name already exists, it may be overwritten.")
+                print("Before continuing, it is recommended that you back up the relevant data!")
+                confirm = input("Are you sure you want to continue? (yes/no): ").strip().lower()
+
+                if confirm == 'yes':
+                    txt_2_json.process_txt_to_json(filePath)
+                else:
+                    print("The operation has been canceled.")
+                    continue
+
             elif task_num == 3:
                 stdout, stderr = run_powershell_command(command)
                 if stdout:
