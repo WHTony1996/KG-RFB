@@ -141,10 +141,10 @@ Enter `exit` or `0` to quit the program or the Q&A session.
 
 -   `main.py`: The main entry point and workflow controller for the project.
 -   `pdf_extract_text.py`: Handles reading text from documents, chunking, and calling the LLM for knowledge extraction.
--   `csv_refine.py`: Contains functions for data cleaning, node de-duplication, and formatting data for Neo4j import.
+-   `txt_2_json.py`: Contains functions for data cleaning, node de-duplication, and formatting data for Neo4j import.
 -   `llm_with_neo4j.py`: Implements the core RAG logic, including Cypher generation, Neo4j querying, and final answer generation.
 -   `chatgpt_client.py`: A client wrapper for communicating with the Large Language Model API.
--   `subNeo4j/`: (Inferred) A directory for helper scripts related to data transformation, such as `txt2json`.
+-   `subNeo4j/`: (Inferred) A directory for helper scripts related to data transformation, such as `csv_refine.py`.
 
 ## Roadmap
 
@@ -157,6 +157,3 @@ Enter `exit` or `0` to quit the program or the Q&A session.
 
 Contributions are welcome! Please feel free to submit a Pull Request or create an Issue to report bugs, suggest features, or ask questions.
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
