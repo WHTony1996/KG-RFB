@@ -66,7 +66,7 @@ The system's workflow is divided into four main phases:
     It is recommended to use a virtual environment:
     ```bash
     conda create -n chat_rfb python=3.12
-    conda activate chat_rfb_env
+    conda activate chat_rfb
     pip install -r requirements.txt
 
 3.  **Configure Environment Variables**
