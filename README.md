@@ -132,7 +132,7 @@ The program will display a task menu:
 4, Use a question and answer system
 ```
 > [!IMPORTANT]
->**We have uploaded the initial neo4j data to the `import` file. To run the entire process, please execute the first task in order (1->2->3->4):**
+>**We have uploaded the initial neo4j data to the `import` file, and you can start importing it yourself. To run the entire process, please execute the first task in order (1->2->3->4):**
 
 1.  **Task 1:** Enter `1`.
     The system will extract text from your PDF/TXT files and save raw chunks into a `ref_data` (or similar) folder.
