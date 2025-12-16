@@ -1,6 +1,9 @@
 import os
 import logging
 import httpx
+from openai import OpenAI
+from dotenv import load_dotenv
+load_dotenv()
 
 # --- Setup Logging ---
 # Provides visibility into which model is being called and any potential errors.
@@ -14,35 +17,42 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")  # Example for future extension
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+ALIYUN_API_KEY = os.getenv("ALIYUN_API_KEY")
 
 # --- Client Storage ---
 clients = {}
 
 # --- Initialize DeepSeek Client (OpenAI Compatible) ---
+if ALIYUN_API_KEY:
+    try:
+        logging.info("Configuring Aliyun DeepSeek client...")
+        # 阿里云使用了不同的 ID 命名，为了防止冲突，我们在字典里叫它 'aliyun_deepseek'
+        clients['aliyun_deepseek'] = OpenAI(
+            api_key=ALIYUN_API_KEY,
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+        )
+        logging.info("Aliyun DeepSeek client initialized.")
+    except Exception as e:
+        logging.error(f"Error initializing Aliyun DeepSeek client: {e}")
+
+# --- Initialize DeepSeek Client (OpenAI Compatible) ---
 if DEEPSEEK_API_KEY:
     try:
-        clients['deepseek'] = {
-            "client": httpx.Client(),  # Placeholder, OpenAI client handles this
-            "api_client": "openai",
-            "model": "deepseek-chat",
-            "instance": "https://api.deepseek.com"
-        }
-        logging.info("DeepSeek client configured.")
-    except ImportError:
-        logging.warning("DeepSeek client could not be initialized. `openai` library may be missing.")
+        logging.info("Configuring Official DeepSeek client...")
+        clients['official_deepseek'] = OpenAI(
+            api_key=DEEPSEEK_API_KEY,
+            base_url="https://api.deepseek.com"
+        )
+        logging.info("Official DeepSeek client initialized.")
     except Exception as e:
-        logging.error(f"Error initializing DeepSeek client: {e}")
+        logging.error(f"Error initializing Official DeepSeek client: {e}")
 
 # --- Initialize OpenAI Client ---
 if OPENAI_API_KEY:
     try:
-        from openai import OpenAI
-
         clients['openai'] = OpenAI(api_key=OPENAI_API_KEY)
         logging.info("OpenAI client initialized.")
-    except ImportError:
-        logging.warning("OpenAI client could not be initialized. `openai` library is not installed.")
     except Exception as e:
         logging.error(f"Error initializing OpenAI client: {e}")
 
@@ -73,17 +83,12 @@ if ANTHROPIC_API_KEY:
         logging.error(f"Error initializing Anthropic client: {e}")
 
 
-def _call_openai_compatible(client_name, messages, model, temperature):
-    """Handles calls to OpenAI and OpenAI-compatible APIs like DeepSeek."""
-    from openai import OpenAI
-
-    config = clients[client_name]
-    api_key = DEEPSEEK_API_KEY if client_name == 'deepseek' else OPENAI_API_KEY
-
-    client = OpenAI(api_key=api_key, base_url=config.get("instance"))
-
+def _call_openai_compatible(client, messages, model, temperature):
+    """
+    Handles calls to OpenAI compatible clients.
+    """
     completion = client.chat.completions.create(
-        model=config["model"],
+        model=model,
         messages=messages,
         temperature=temperature
     )
@@ -93,11 +98,18 @@ def _call_openai_compatible(client_name, messages, model, temperature):
 def _call_google_gemini(client, messages, temperature):
     """Handles calls to Google's Gemini API."""
     # Gemini uses a slightly different message format and response structure.
-    response = client.generate_content(messages)
+    prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
+    response = client.generate_content(prompt)
     return response.text
 
 
 LLM_PROVIDERS = [
+    {
+        "name": "Aliyun DeepSeek-V3",
+        "client_key": "aliyun_deepseek",
+        "call_function": _call_openai_compatible,
+        "model": "deepseek-v3"
+    },
     {
         "name": "DeepSeek-V3",
         "client_key": "deepseek",
@@ -119,7 +131,8 @@ LLM_PROVIDERS = [
 ]
 
 
-def send_message(messages, temperature=0.7):
+def send_message(messages, temperature=1.0):
+    print("messages:", messages)
     """
     Sends a message to a series of LLM providers with a fallback mechanism.
 
@@ -149,50 +162,43 @@ def send_message(messages, temperature=0.7):
             logging.info(f"Attempting to call {provider_name}...")
             client_instance = clients[client_key]
 
-            # For OpenAI-compatible clients, we pass the name to handle different configs
-            if provider["call_function"] == _call_openai_compatible:
-                response = provider["call_function"](client_key, messages, provider["model"], temperature)
-            else:
+            if provider["client_key"] == 'gemini':
                 response = provider["call_function"](client_instance, messages, temperature)
+            else:
+                response = provider["call_function"](client_instance, messages, provider["model"], temperature)
 
             logging.info(f"Successfully received response from {provider_name}.")
+            print(f"Assistant: {response}")
             return response
 
         except Exception as e:
             logging.error(f"Failed to call {provider_name}. Error: {e}")
-            # The loop will automatically continue to the next provider
             continue
 
-    # This part is reached only if all providers in the loop have failed
     raise RuntimeError("All LLM providers failed to generate a response.")
 
 
 def chat_with_model():
     """A simple multi-turn conversation loop to demonstrate the fallback mechanism."""
     chat_history = []
+    print("\n--- Chat System Ready (Type 'exit' to quit) ---")
     while True:
-        user_input = input("You: ")
-        if user_input.lower() in ["exit", "quit"]:
-            print("Exiting chat.")
+        try:
+            user_input = input("You: ")
+            if user_input.lower() in ["exit", "quit"]:
+                print("Exiting chat.")
+                break
+        except EOFError:
             break
 
+        # Add the model's response to the history for context
         chat_history.append({'role': 'user', 'content': user_input})
-
         try:
-            # Call the robust send_message function
             model_response = send_message(chat_history)
-
             print(f"Assistant: {model_response}")
-
-            # Add the model's response to the history for context
             chat_history.append({'role': 'assistant', 'content': model_response})
-
         except RuntimeError as e:
             print(f"Error: {e}")
-            # Optionally, break the loop or allow the user to try again
-            break
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
             break
 
 

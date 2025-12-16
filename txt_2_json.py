@@ -4,6 +4,48 @@ import ast # For literal_eval
 import re
 from pathlib import Path
 
+
+def extract_json_content(text):
+    """
+    核心修复函数：从 LLM 的回复中提取真正的 JSON 部分。
+    1. 去除 Markdown 代码块 (```json ... ```)
+    2. 寻找最外层的 [ ... ] 或 { ... }
+    """
+    text = text.strip()
+
+    # 1. 尝试去除 Markdown 标记
+    # 匹配 ```json ... ``` 或者 ``` ... ```
+    match = re.search(r"```(?:json)?\s*(.*)\s*```", text, re.DOTALL | re.IGNORECASE)
+    if match:
+        text = match.group(1).strip()
+
+    # 2. 暴力寻找最左边的 '[' 或 '{' 和 最右边的 ']' 或 '}'
+    # 这是为了解决 "Here is your json: [...]" 这种情况
+    try:
+        # 找数组
+        start_list = text.find('[')
+        end_list = text.rfind(']')
+
+        # 找对象
+        start_dict = text.find('{')
+        end_dict = text.rfind('}')
+
+        # 判断是数组还是字典，看谁范围更广或谁存在
+        candidate = text
+
+        # 如果找到了 [...] 且看起来是合法的
+        if start_list != -1 and end_list != -1 and end_list > start_list:
+            candidate = text[start_list: end_list + 1]
+
+        # 如果找到了 {...} 且看起来是合法的 (有时候是单条数据)
+        elif start_dict != -1 and end_dict != -1 and end_dict > start_dict:
+            candidate = text[start_dict: end_dict + 1]
+
+        return candidate
+    except Exception:
+        return text
+
+
 def repair_json_string(json_like_string):
     """
     Attempt to fix common JSON formatting issues.
@@ -48,7 +90,7 @@ def process_txt_to_json(file_paths):
         for directory_path in file_paths:
             if not os.path.isdir(directory_path):
                 print(f"Error: Catalog '{directory_path}' is not exist.")
-                return
+                continue
             print(f"Processing directory: {directory_path}")
             processed_files = 0
             successful_conversions = 0
@@ -75,7 +117,13 @@ def process_txt_to_json(file_paths):
                         print(f"Warning: The file '{filename}' is empty and has been skipped.")
                         failed_conversions += 1
                         continue
-
+                    # --- 修改 2: 新增 LLM 格式清洗逻辑 (开始) ---
+                    # 目的：去除 ```json ... ``` 这种 Markdown 标记，解决 line 1 column 1 报错
+                    # 如果找到了代码块，就只取代码块里的内容
+                    match = re.search(r"```(?:json)?\s*(.*)\s*```", content, re.DOTALL | re.IGNORECASE)
+                    if match:
+                        content = match.group(1).strip()
+                    # --- 修改 2: 新增 LLM 格式清洗逻辑 (结束) ---
                     parsed_data = None
                     error_message = ""
 
@@ -132,3 +180,4 @@ def process_txt_to_json(file_paths):
         print(f"Conversion failed or skipped: {failed_conversions}")
 
 if __name__ == "__main__":
+    print("This file is part of F:\WORK\flow_battery_pdf")

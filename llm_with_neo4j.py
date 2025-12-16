@@ -32,11 +32,11 @@ kg_prompt = """The following information is obtained through a knowledge graph.
 
 def get_query(question):
     logging.info(question)
-    cypher_messages.clear()
-    cypher_messages.append({'role': 'system', 'content': query_prompt})
-    cypher_messages.append({'role': 'user', 'content': question})
-    cypher_messages.append({'role': 'assistant', 'content': cypher_example})
-    return cc.send_message(cypher_messages)
+    messages = []
+    messages.append({'role': 'system', 'content': query_prompt})
+    messages.append({'role': 'user', 'content': question})
+    messages.append({'role': 'assistant', 'content': cypher_example})
+    return cc.send_message(messages)
 
 
 def run_cypher_query(cypher_query, uri="bolt://localhost:7687", user="neo4j", password="bjutB406"):
@@ -66,45 +66,41 @@ def run_cypher_query(cypher_query, uri="bolt://localhost:7687", user="neo4j", pa
         driver.close()
 
 
-def answer_question(kg_records, question):
+def answer_question(kg_records, question, chat_history):
     logging.info(f"run_cypher_query records:\n{kg_records}")
-    kg_records = str(kg_records)[:20000]
-    prompt = f"""{kg_prompt}\n {kg_records}"""
-    # 遍历列表并替换
-    for i, message in enumerate(question_messages):
-        if message.get("role") == "system":
-            del question_messages[i]  # 替换为新的字典项
-            break  # 找到后退出循环
-    question_messages.append({'role': 'system', 'content': prompt})
-    question_messages.append({'role': 'user', 'content': question})
-    response = cc.send_message(question_messages)
-    question_messages.append({'role': 'assistant', 'content': response})
+    kg_records_str = str(kg_records)[:20000]
+    current_system_content = f"{kg_prompt}\n {kg_records_str}"
+    messages_to_send = [{'role': 'system', 'content': current_system_content}]
+    messages_to_send.extend(chat_history)
+    messages_to_send.append({'role': 'user', 'content': question})
+    response = cc.send_message(messages_to_send)
+    chat_history.append({'role': 'user', 'content': question})
+    chat_history.append({'role': 'assistant', 'content': response})
     return response
 
 
 def main():
-    cypher_messages = []
-    question_messages = []
-    # 清空日志文件
+    chat_history = []
     filename = '.\\1.log'
     with open(filename, 'w'):
-        pass  # 这将创建一个空文件或清空现有文件
+        pass
     # 设置日志配置
     logging.basicConfig(filename=filename, level=logging.INFO,
                         format='%(asctime)s %(filename)s [line:%(lineno)d]  - %(levelname)s - %(message)s')
 
-    question = "Which refenence mentioned anthraquinone for redox flow batteries?"
+    # question = "Which refenence mentioned anthraquinone for redox flow batteries?"
     while True:
         # 用户输入问题
-        question = input("请输入您的问题（输入'exit'结束对话）：")
+        question = input("Please enter your question (enter 'exit' to end the conversation):")
         # 如果用户输入 "exit"，退出循环
         if question.lower() == "exit":
-            print("对话已结束。")
+            print("The conversation has ended.")
             break
 
-        query = get_query(question)  # cyphter编辑器模型
+        query = get_query(question)  # Cypher Editor Model
         records = run_cypher_query(cypher_query=query)
-        answer = answer_question(kg_records=records, question=question)  # kg辅助模型
+        answer = answer_question(kg_records=records, question=question)  # KG auxiliary model
+        print(f"Assistant: {answer}")
         logging.info(f"answer:\n\t{answer}")
 
 

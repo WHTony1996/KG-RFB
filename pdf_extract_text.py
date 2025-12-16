@@ -25,7 +25,7 @@ def load_PDF(pdf_path):
 
 
 def text_splitter(art_text):
-    text = [art_text]
+    text = str(art_text)
     # Create a TextSplitter instance
     text_splitter = CharacterTextSplitter(
         separator=" ",
@@ -36,47 +36,80 @@ def text_splitter(art_text):
     )
 
     #Create document
-    texts = text_splitter.create_documents(text)
+    texts = text_splitter.create_documents([text])
     print(f"art_text{len(art_text)} text_splitter len is :{len(texts)}")
     return texts
 
 
-def process_pdf(txt_file, lock, prompt):
+def process_file(file_path, prompt):
     """
-    :param txt_file:  Enter the text content of txt
-    :param lock:
-    :param prompt: Prompt words
-    :return:
+    处理单个文件的函数
     """
-    print(f"Processing {txt_file}")
+    print(f"Processing: {file_path.name}")  # 减少刷屏，交给 tqdm
 
     current_dir = Path.cwd()
-    output_file = current_dir / txt_file.stem
-    output_file.mkdir(parents=True, exist_ok=True)
-    article_text =""
-    if txt_file.suffix == '.pdf':
-        article_text = load_PDF(txt_file)
-    elif txt_file.suffix == '.txt':
-        with open(txt_file, 'r', encoding="utf-8") as f:
-            article_text = f.read()
+    # 创建对应的输出文件夹
+    output_subdir = current_dir / "ref_data" / file_path.stem
+    output_subdir.mkdir(parents=True, exist_ok=True)
+
+    article_text = ""
+
+    # 1. 读取文件内容
+    try:
+        if file_path.suffix.lower() == '.pdf':
+            article_text = load_PDF(file_path)
+        elif file_path.suffix.lower() == '.txt':
+            with open(file_path, 'r', encoding="utf-8") as f:
+                article_text = f.read()
+    except Exception as e:
+        print(f"Error reading {file_path.name}: {e}")
+        return
+        # 埋点 2：检查有没有读到内容
+    print(f"--> [调试] 文件读取长度: {len(article_text)} 字符")
+    if not article_text:
+        print(f"Warning: No text extracted from {file_path.name}")
+        return
+
+    # 2. 切分文本
     texts = text_splitter(article_text)
 
-    try:
-        for i, text in enumerate(texts):
-            article_text_str = str(text)
-            print(len(article_text_str))
-            message = []
-            message.append({'role': 'system', 'content': prompt})
-            message.append({'role': 'user', 'content': article_text_str})
+    # 埋点 3：检查切分结果
+    print(f"--> [调试] 切分数量: {len(texts)} 个片段")
+    if len(texts) == 0:
+        print("⚠️ [警告] 切分后没有任何片段！")
+        return
+    # 3. 循环调用 AI
+    for i, text in enumerate(texts):
+        # 检查该切片是否已经处理过（断点续传）
+        output_txt_path = output_subdir / f"{i}.txt"
+        if output_txt_path.exists():
+            print(f"--> [跳过] 文件已存在: {i}.txt")
+            continue
+
+        chunk_content = text.page_content  # Langchain Document 对象的属性是 page_content
+        # 埋点 4：确认当前片段有内容
+        print(f"--> [调试] 正在准备第 {i} 个片段，长度 {len(chunk_content)}")
+        message = [
+            {'role': 'system', 'content': prompt},
+            {'role': 'user', 'content': chunk_content}
+        ]
+
+        try:
+            print(f"--> [请求中] 正在发送第 {i} 个片段给 AI...")  # 埋点 5
+            # 调用 AI
             response_data = cc.send_message(messages=message)
+
+            # 保存结果
             if response_data:
-                print("AI:", response_data)
-            output_txt_path = output_file / f"{i}.txt"
-            # with Lock:
-            with open(output_txt_path, "w", encoding="utf-8") as w:
-                w.write(response_data)
-    except Exception as e:
-        print(e)
+                print(f"✅ [成功] 收到 AI 回复，长度: {len(response_data)}，正在写入...")
+                with open(output_txt_path, "w", encoding="utf-8") as w:
+                    w.write(response_data)
+            else:
+                print(f"❌ [失败] AI 返回了空内容 (None 或 Empty String)")
+
+        except Exception as e:
+            print(f"Error processing chunk {i} of {file_path.name}: {e}")
+
 
 def main():
     # Define a system message as part of the context.
@@ -104,25 +137,28 @@ def main():
     # prompt = [system_message]
     current_dir = Path.cwd()
     target_dir_name = "pdfoutputreview"
-    txt_dir = current_dir / target_dir_name
-    txt_dir.mkdir(parents=True, exist_ok=True)
-    txt_paths = list(txt_dir.glob("*.txt"))
-    # for file in tqdm(txt_paths):
-    #     file = str(file)
-        # txt_path = os.path.join(txt_dir, file)
+    source_dir = current_dir / target_dir_name
+    # 自动创建目录（如果不存在）
+    if not source_dir.exists():
+        source_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Folder '{target_dir_name}' created. Please put your PDF/TXT files in it!")
+        return
+    # 1. 修复：同时获取 PDF 和 TXT 文件
+    files = list(source_dir.glob("*.txt")) + list(source_dir.glob("*.pdf"))
+    if not files:
+        print(f"No .txt or .pdf files found in {source_dir}")
+        return
+    print(f"Found {len(files)} files. Starting processing...")
 
-
-    # Initialize locks and thread pools
-    lock = Lock()
-    max_workers = 80
+    max_workers = 1
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Use TQDM to track progress and submit tasks.
-        list(tqdm(
-            executor.map(lambda file: process_pdf(file, lock, prompt), txt_paths),
-            total=len(txt_paths),
-            desc="Processing jsons"
-        ))
+        # 使用 map 提交任务，process_file 不需要 lock 参数了
+        futures = [executor.submit(process_file, file, prompt) for file in files]
+
+        # 使用 as_completed 配合 tqdm 显示进度
+        for _ in tqdm(concurrent.futures.as_completed(futures), total=len(files), desc="Processing Files"):
+            pass
 
 
 if __name__ == "__main__":
