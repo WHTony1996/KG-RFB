@@ -70,7 +70,7 @@ The system's workflow is divided into four main phases:
     pip install -r requirements.txt
 
 3.  **Configure Environment Variables**
-    Create a `.env` file in the root directory to store your API keys securely. Do not hardcode keys in the scripts.
+    Create a `.env` file in the root directory to store your API keys securely. 
     ```env
     DEEPSEEK_API_KEY=sk-your_deepseek_key_here
     OPENAI_API_KEY=sk-your_openai_key_here
@@ -83,20 +83,9 @@ Update your Neo4j connection details in `llm_with_neo4j.py` if they differ from 
     # llm_with_neo4j.py
     run_cypher_query(..., uri="bolt://localhost:7687", user="neo4j", password="your_password")
     ```
- 
-5. **Configure LLM API Key**
-    -   Open `chatgpt_client.py`.
-    -   Replace the placeholder `api_key` with your actual API key from DeepSeek or another OpenAI-compatible service.
-      ```python
-      # in chat_client.py
-      client = OpenAI(
-          base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-          api_key="sk-your_api_key_here",
-      )
-      ```
 
 5.  **Prepare Your Data**
-    -   Place your source `.pdf` or `.txt` files into a directory (e.g., `F:\Data\Source`).
+    -   Place your source `.pdf` files into a directory (e.g., `F:\Data\Source`).
     -   The system will automatically create output folders structure during Phase 1.
 
 ## Usage
