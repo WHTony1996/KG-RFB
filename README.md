@@ -90,8 +90,8 @@ This phase is a unified pipeline triggered by Task 2 in the main menu:
 2.  **Install Python Dependencies**
     It is recommended to use a virtual environment:
     ```bash
-    conda create -n chat_rfb python=3.12
-    conda activate chat_rfb
+    conda create -n chat_rfb_env python=3.12
+    conda activate chat_rfb_env
     pip install -r requirements.txt
     ```
 
