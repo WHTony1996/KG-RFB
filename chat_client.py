@@ -2,6 +2,7 @@ import os
 import logging
 import httpx
 from openai import OpenAI
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -14,11 +15,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # This section attempts to initialize clients for all potential providers.
 # If a key is missing or a library is not installed, the provider will be gracefully skipped.
 
+ALIYUN_API_KEY = os.getenv("ALIYUN_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-ALIYUN_API_KEY = os.getenv("ALIYUN_API_KEY")
 
 # --- Client Storage ---
 clients = {}
@@ -48,21 +48,13 @@ if DEEPSEEK_API_KEY:
     except Exception as e:
         logging.error(f"Error initializing Official DeepSeek client: {e}")
 
-# --- Initialize OpenAI Client ---
-if OPENAI_API_KEY:
-    try:
-        clients['openai'] = OpenAI(api_key=OPENAI_API_KEY)
-        logging.info("OpenAI client initialized.")
-    except Exception as e:
-        logging.error(f"Error initializing OpenAI client: {e}")
 
 # --- Initialize Google Gemini Client ---
 if GOOGLE_API_KEY:
     try:
-        import google.generativeai as genai
-
-        genai.configure(api_key=GOOGLE_API_KEY)
-        clients['gemini'] = genai.GenerativeModel('gemini-pro')
+        from google import genai
+        logging.info("Configuring Google Gemini client (New SDK)...")
+        clients['gemini'] = genai.Client(api_key=GOOGLE_API_KEY)
         logging.info("Google Gemini client initialized.")
     except ImportError:
         logging.warning(
@@ -70,17 +62,14 @@ if GOOGLE_API_KEY:
     except Exception as e:
         logging.error(f"Error initializing Google Gemini client: {e}")
 
-# --- Initialize Anthropic Client (Example for future extension) ---
-if ANTHROPIC_API_KEY:
-    try:
-        from anthropic import Anthropic
 
-        clients['anthropic'] = Anthropic(api_key=ANTHROPIC_API_KEY)
-        logging.info("Anthropic client initialized.")
-    except ImportError:
-        logging.warning("Anthropic client could not be initialized. `anthropic` library is not installed.")
+# --- Initialize OpenAI Client ---
+if OPENAI_API_KEY:
+    try:
+        clients['openai'] = OpenAI(api_key=OPENAI_API_KEY)
+        logging.info("OpenAI client initialized.")
     except Exception as e:
-        logging.error(f"Error initializing Anthropic client: {e}")
+        logging.error(f"Error initializing OpenAI client: {e}")
 
 
 def _call_openai_compatible(client, messages, model, temperature):
@@ -95,11 +84,18 @@ def _call_openai_compatible(client, messages, model, temperature):
     return completion.choices[0].message.content
 
 
-def _call_google_gemini(client, messages, temperature):
+def _call_google_gemini(client, messages, model, temperature):
     """Handles calls to Google's Gemini API."""
     # Gemini uses a slightly different message format and response structure.
+    from google.genai import types
     prompt = "\n".join([f"{m['role']}: {m['content']}" for m in messages])
-    response = client.generate_content(prompt)
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=temperature
+        )
+    )
     return response.text
 
 
@@ -112,21 +108,21 @@ LLM_PROVIDERS = [
     },
     {
         "name": "DeepSeek-V3",
-        "client_key": "deepseek",
+        "client_key": "official_deepseek",
         "call_function": _call_openai_compatible,
         "model": "deepseek-chat"  # As per DeepSeek documentation
     },
     {
-        "name": "OpenAI GPT-4",
+        "name": "OpenAI gpt-5-nano",
         "client_key": "openai",
         "call_function": _call_openai_compatible,
-        "model": "gpt-4-turbo"  # Example model, can be changed
+        "model": "gpt-5-nano"  # Example model, can be changed
     },
     {
-        "name": "Google Gemini Pro",
+        "name": "gemini-2.5-flash",
         "client_key": "gemini",
         "call_function": _call_google_gemini,
-        "model": "gemini-pro"
+        "model": "gemini-2.5-flash"
     }
 ]
 
@@ -162,10 +158,10 @@ def send_message(messages, temperature=1.0):
             logging.info(f"Attempting to call {provider_name}...")
             client_instance = clients[client_key]
 
-            if provider["client_key"] == 'gemini':
-                response = provider["call_function"](client_instance, messages, temperature)
-            else:
-                response = provider["call_function"](client_instance, messages, provider["model"], temperature)
+            # if provider["client_key"] == 'gemini':
+            #     response = provider["call_function"](client_instance, messages, provider["model"])
+            # else:
+            response = provider["call_function"](client_instance, messages, provider["model"], temperature)
 
             logging.info(f"Successfully received response from {provider_name}.")
             print(f"Assistant: {response}")

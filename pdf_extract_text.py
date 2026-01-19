@@ -10,6 +10,8 @@ from tqdm import tqdm
 from langchain_community.document_loaders import PyPDFLoader
 import chat_client as cc
 
+# 并发数
+MAX_WORKERS = 1
 
 def load_PDF(pdf_path):
     loader = PyPDFLoader(pdf_path,
@@ -37,7 +39,6 @@ def text_splitter(art_text):
 
     #Create document
     texts = text_splitter.create_documents([text])
-    print(f"art_text{len(art_text)} text_splitter len is :{len(texts)}")
     return texts
 
 
@@ -54,7 +55,7 @@ def process_file(file_path, prompt):
 
     article_text = ""
 
-    # 1. 读取文件内容
+    # 1. Read file content
     try:
         if file_path.suffix.lower() == '.pdf':
             article_text = load_PDF(file_path)
@@ -64,48 +65,40 @@ def process_file(file_path, prompt):
     except Exception as e:
         print(f"Error reading {file_path.name}: {e}")
         return
-        # 埋点 2：检查有没有读到内容
-    print(f"--> [调试] 文件读取长度: {len(article_text)} 字符")
     if not article_text:
         print(f"Warning: No text extracted from {file_path.name}")
         return
 
-    # 2. 切分文本
+    # 2. Text segmentation
     texts = text_splitter(article_text)
 
-    # 埋点 3：检查切分结果
-    print(f"--> [调试] 切分数量: {len(texts)} 个片段")
+    # print(f"--> [Debug] Number of segments: {len(texts)} fragments")
     if len(texts) == 0:
-        print("⚠️ [警告] 切分后没有任何片段！")
+        print("⚠️ [warning] there are no fragments after segmentation!")
         return
-    # 3. 循环调用 AI
     for i, text in enumerate(texts):
-        # 检查该切片是否已经处理过（断点续传）
+        # Check if the slice has been processed (resumable from breakpoint).
         output_txt_path = output_subdir / f"{i}.txt"
         if output_txt_path.exists():
-            print(f"--> [跳过] 文件已存在: {i}.txt")
+            print(f"--> [skip] file already exists: {i}.txt")
             continue
 
-        chunk_content = text.page_content  # Langchain Document 对象的属性是 page_content
-        # 埋点 4：确认当前片段有内容
-        print(f"--> [调试] 正在准备第 {i} 个片段，长度 {len(chunk_content)}")
+        chunk_content = text.page_content
         message = [
             {'role': 'system', 'content': prompt},
             {'role': 'user', 'content': chunk_content}
         ]
-
         try:
-            print(f"--> [请求中] 正在发送第 {i} 个片段给 AI...")  # 埋点 5
-            # 调用 AI
+            print(f"--> [requesting] sending {i} segment to AI")
             response_data = cc.send_message(messages=message)
 
-            # 保存结果
+            # Save results
             if response_data:
-                print(f"✅ [成功] 收到 AI 回复，长度: {len(response_data)}，正在写入...")
+                print(f"✅[success] AI reply received, length: {len (response_data)}, writing ..")
                 with open(output_txt_path, "w", encoding="utf-8") as w:
                     w.write(response_data)
             else:
-                print(f"❌ [失败] AI 返回了空内容 (None 或 Empty String)")
+                print(f"❌[failure] AI returned null content (none or empty string)")
 
         except Exception as e:
             print(f"Error processing chunk {i} of {file_path.name}: {e}")
@@ -138,25 +131,20 @@ def main():
     current_dir = Path.cwd()
     target_dir_name = "pdfoutputreview"
     source_dir = current_dir / target_dir_name
-    # 自动创建目录（如果不存在）
     if not source_dir.exists():
         source_dir.mkdir(parents=True, exist_ok=True)
         print(f"Folder '{target_dir_name}' created. Please put your PDF/TXT files in it!")
         return
-    # 1. 修复：同时获取 PDF 和 TXT 文件
     files = list(source_dir.glob("*.txt")) + list(source_dir.glob("*.pdf"))
     if not files:
         print(f"No .txt or .pdf files found in {source_dir}")
         return
     print(f"Found {len(files)} files. Starting processing...")
 
-    max_workers = 1
+    max_workers = MAX_WORKERS
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # 使用 map 提交任务，process_file 不需要 lock 参数了
         futures = [executor.submit(process_file, file, prompt) for file in files]
-
-        # 使用 as_completed 配合 tqdm 显示进度
         for _ in tqdm(concurrent.futures.as_completed(futures), total=len(files), desc="Processing Files"):
             pass
 

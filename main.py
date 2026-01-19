@@ -6,15 +6,7 @@ import llm_with_neo4j
 import subprocess
 import txt_2_json
 
-command = """
-neo4j-admin database import full `
---nodes=Node="{node_csv}" `
---relationships=ORDERED="{rel_csv}" `
---trim-strings=true neo4j `
---multiline-fields=true `
---overwrite-destination `
---verbose
-"""
+command = """neo4j-admin database import full --nodes=Node="{node_csv}" --relationships=ORDERED="{rel_csv}" --trim-strings=true neo4j --multiline-fields=true --overwrite-destination --verbose"""
 
 tasks = ['quit',
          'Extract node information',
@@ -48,18 +40,13 @@ if __name__ == "__main__":
             if task_num == 1:
                 pdf_extract_text.main()
             elif task_num == 2:
-                # 1. 获取输入目录
                 target_directory = input("Please enter the ROOT directory path (containing DOI folders): ").strip()
-                # 移除路径周围可能存在的引号
                 target_directory = target_directory.strip('"').strip("'")
                 root_path = Path(target_directory)
                 if not root_path.exists():
                     print("Error: Directory does not exist.")
                     continue
                 print("\n--- Phase 1: Cleaning TXT to JSON ---")
-                # [关键逻辑] 适配 txt_2_json.py
-                # 因为 txt_2_json 不会递归查找，所以我们要在 main.py 里把所有子文件夹找出来
-                # 逻辑：找出 root_path 下所有的文件夹 (例如 Paper1, Paper2...)
                 subdirs = [str(p) for p in root_path.iterdir() if p.is_dir()]
                 if not subdirs:
                     print("Warning: No subdirectories found. Processing the root path only.")
@@ -97,7 +84,6 @@ if __name__ == "__main__":
                     print("Error: Directory not found. Please check your path.")
                     continue
 
-                # 2. 自动定位 node_new.csv 和 relation_new.csv
                 node_csv_path = csv_dir / "node_new.csv"
                 rel_csv_path = csv_dir / "relation_new.csv"
                 if not node_csv_path.exists():
@@ -109,8 +95,7 @@ if __name__ == "__main__":
                 final_command = command.format(
                     node_csv=str(node_csv_path),
                     rel_csv=str(rel_csv_path)
-                )
-                print("\nExecuting Neo4j Import Command...")
+                ).replace("\n", " ").strip()
                 stdout, stderr = run_powershell_command(final_command)
                 if stdout:
                     print(f"\n[Neo4j Output]:\n{stdout}")
@@ -118,6 +103,8 @@ if __name__ == "__main__":
                     # Note: Many normal logs of Neo4j will also be output in STDerr,
                     # which may not necessarily result in errors
                     print(f"\n[Neo4j Log]:\n{stderr}")
+                if "IMPORT DONE" in stdout:
+                    print("\n✅ SUCCESS: Data successfully imported into Neo4j!")
             elif task_num == 4:
                 llm_with_neo4j.main()
         except ValueError:
