@@ -3,6 +3,7 @@
 # Chat-RFB: A Flow Battery Chat System Leveraging Knowledge Graphs and Large Language Models
 
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%20Only-0078D6.svg)](https://www.microsoft.com/windows)
 [![Neo4j](https://img.shields.io/badge/Database-Neo4j-008CC1.svg)](https://neo4j.com/)
 [![LLM](https://img.shields.io/badge/AI-LLM%20%2B%20RAG-green.svg)](https://openai.com/)
 
@@ -13,6 +14,9 @@
 **Chat-RFB** is a powerful, end-to-end system designed to automatically construct a Knowledge Graph (KG) from a vast corpus of scientific literature on Redox Flow Batteries (RFB) and provide an intelligent Question-Answering (Q&A) bot based on this graph. 
 
 This project leverages the power of Large Language Models (LLMs) to transform unstructured text into structured knowledge and utilizes a Retrieval-Augmented Generation (RAG) architecture to provide users with precise, fact-based, and domain-specific answers.
+
+> [!NOTE]
+> **Validated Environment:** This system has been rigorously tested and validated on **Windows 10** using **Python 3.12** and the **DeepSeek-V3** model. While other configurations may work, this specific setup is highly recommended for stability. 
 
 ---
 
@@ -64,20 +68,22 @@ This phase is a unified pipeline triggered by Task 2 in the main menu:
 
 | Component | Technology |
 | :--- | :--- |
-| **Backend** | Python 3.12 |
-| **Database** | Neo4j |
-| **LLM Interaction** | `openai` (Compatible with DeepSeek, etc.) |
-| **Graph Operations** | `neo4j` |
+| **OS Requirement** | **Windows 10** (Due to `pywin32` and PowerShell dependencies) |
+| **Language** | Python 3.12 |
+| **Recommended Model** | **DeepSeek-V3** (Verified for optimal performance) |
+| **Database** | Neo4j Community/Enterprise |
+| **Graph Operations** | `neo4j` (Python Driver), `neo4j-admin` |
 | **Data Handling** | `pandas` |
 | **Text Processing** | `langchain-text-splitters`, `PyPDFLoader` |
-| **Utilities** | `tqdm` |
+
 
 ---
-
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Neo4j Desktop** or **Server** installed and running.
+- **Operating System:** Windows 10 or 11.
+- **Database:** Neo4j Desktop or Server installed.
+- **API Key:** A valid API key for **DeepSeek** (recommended) or OpenAI.
 
 ### Installation & Setup
 
@@ -100,7 +106,7 @@ This phase is a unified pipeline triggered by Task 2 in the main menu:
     ```env
     DEEPSEEK_API_KEY=sk-your_deepseek_key_here
     OPENAI_API_KEY=sk-your_openai_key_here
-    # Add other keys (ALIYUN, GOOGLE, ANTHROPIC) if needed
+    # Add other keys (ALIYUN, GOOGLE) if needed
     ```
 
 4.  **Configure Neo4j**
@@ -111,7 +117,7 @@ This phase is a unified pipeline triggered by Task 2 in the main menu:
     ```
 
 5.  **Prepare Your Data**
-    - Place your source `.pdf` files into a directory (e.g., `F:\Data\Source`).
+    - Place your source `.pdf` files into a directory (e.g., `KG-RFB\pdfoutputreview`).
     - The system will automatically create output folders structure during Phase 1.
 
 ---
