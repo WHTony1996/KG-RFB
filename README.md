@@ -117,8 +117,11 @@ This phase is a unified pipeline triggered by Task 2 in the main menu:
     ```
 
 5.  **Prepare Your Data**
-    - Place your source `.pdf` files into a directory (e.g., `KG-RFB\pdfoutputreview`).
-    - The system will automatically create output folders structure during Phase 1.
+   *   **Option A (Build from Source):** Place your source `.pdf` files into a directory (e.g., `...KG-RFB\pdfoutputreview`).
+   *   **Option B (Use Pre-built Database):** If you wish to skip the data extraction and graph construction phases (Tasks 1-3) and test the Q&A system immediately:
+       *   Locate the `import/rfbdatabase.rar` file in this repository.
+       *   Extract the contents into your Neo4j installation directory under `data/databases/`.
+       *   Switch your Neo4j active database to this `rfbdatabase` (or overwrite the default `neo4j` database folder).
 
 ---
 
@@ -138,7 +141,10 @@ The program will display a task menu:
 4, Use a question and answer system
 ```
 > [!IMPORTANT]
->**We have uploaded the initial neo4j data to the `import` file, and you can start importing it yourself. To run the entire process, please execute the first task in order (1->2->3->4):**
+> **Quick Start Mode:**
+> We have provided a **pre-constructed Knowledge Graph database** compressed as `import/rfbdatabase.rar`. 
+> *   **To use it:** Unzip this file directly into your Neo4j `data/databases/` directory. This allows you to skip Tasks 1, 2, and 3, and proceed directly to **Task 4** to test the Q&A system.
+> *   **To build from scratch:** Please execute the tasks in order (1 -> 2 -> 3 -> 4).
 
 1.  **Task 1:** Enter `1`.
     The system will extract text from your PDF/TXT files and save raw chunks into a `ref_data` (or similar) folder.

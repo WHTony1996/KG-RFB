@@ -1,6 +1,7 @@
 from neo4j import GraphDatabase
 import logging
 import chat_client as cc
+import re
 
 query_prompt = """I am working with a Neo4j database and would like you to help me construct a Cypher query based on the information I provide. Please generate a syntactically correct Cypher query statement that can be executed directly in the Neo4j environment. Ensure that the query is precise and optimized for performance. I will describe the information I need to retrieve; please make sure the generated Cypher query accurately reflects my requirements.
 Now I'm going to tell you a little bit about this knowledge graph.
@@ -17,8 +18,8 @@ please only answer the cypher code. Don't have any grammar problems. with out an
 """
 
 cypher_example = """
-MATCH (a:Node)-[r]->(b:Node)
-WHERE a.name = ""
+MATCH (a)-[r]->(b)
+WHERE a.name CONTAINS ""
 RETURN     
     a.name AS aName, 
     r.relationship AS rRelationship, 
@@ -30,13 +31,36 @@ kg_prompt = """The following information is obtained through a knowledge graph.
          Known relevant information:"""
 
 
+def clean_cypher_response(response_text):
+    """
+    清洗 LLM 的回复，只提取 Cypher 代码部分
+    """
+    # 1. 如果包含 Markdown 代码块 (```cypher ... ```)，用正则提取中间的内容
+    pattern = r"```(?:cypher)?\s*(.*?)```"
+    match = re.search(pattern, response_text, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+
+    # 2. 如果没有 Markdown，尝试寻找 'MATCH' 关键词的位置
+    # 因为 Cypher 99% 都是以 MATCH 开头的
+    match_index = response_text.find("MATCH")
+    if match_index != -1:
+        # 从 MATCH 开始截取到最后
+        return response_text[match_index:].strip()
+
+    # 3. 如果实在找不到，就原样返回（或者返回空字符串防止报错）
+    return response_text.strip()
+
+
 def get_query(question):
     logging.info(question)
     messages = []
     messages.append({'role': 'system', 'content': query_prompt})
     messages.append({'role': 'user', 'content': question})
     messages.append({'role': 'assistant', 'content': cypher_example})
-    return cc.send_message(messages)
+    raw_response = cc.send_message(messages)
+    clean_response = clean_cypher_response(raw_response)
+    return clean_response
 
 
 def run_cypher_query(cypher_query, uri="bolt://localhost:7687", user="neo4j", password="bjutB406"):
@@ -84,24 +108,26 @@ def main():
     filename = '.\\1.log'
     with open(filename, 'w'):
         pass
-    # 设置日志配置
     logging.basicConfig(filename=filename, level=logging.INFO,
                         format='%(asctime)s %(filename)s [line:%(lineno)d]  - %(levelname)s - %(message)s')
 
     # question = "Which refenence mentioned anthraquinone for redox flow batteries?"
     while True:
-        # 用户输入问题
-        question = input("Please enter your question (enter 'exit' to end the conversation):")
-        # 如果用户输入 "exit"，退出循环
-        if question.lower() == "exit":
-            print("The conversation has ended.")
-            break
+        try:
+            question = input("Please enter your question (enter 'exit' to end the conversation):")
+            if question.lower() == "exit":
+                print("The conversation has ended.")
+                break
 
-        query = get_query(question)  # Cypher Editor Model
-        records = run_cypher_query(cypher_query=query)
-        answer = answer_question(kg_records=records, question=question)  # KG auxiliary model
-        print(f"Assistant: {answer}")
-        logging.info(f"answer:\n\t{answer}")
+            query = get_query(question)  # Cypher Editor Model
+            records = run_cypher_query(cypher_query=query)
+            # KG auxiliary model
+            answer = answer_question(kg_records=records, question=question, chat_history=chat_history)
+            # print(f"Assistant: {answer}")
+            logging.info(f"answer:\n\t{answer}")
+        except Exception as e:
+            # print(f"An error occurred: {e}")
+            logging.error(f"Main Loop Error: {e}")
 
 
 if __name__ == "__main__":

@@ -128,7 +128,7 @@ LLM_PROVIDERS = [
 
 
 def send_message(messages, temperature=1.0):
-    print("messages:", messages)
+    # print("messages:", messages)
     """
     Sends a message to a series of LLM providers with a fallback mechanism.
 
@@ -164,7 +164,7 @@ def send_message(messages, temperature=1.0):
             response = provider["call_function"](client_instance, messages, provider["model"], temperature)
 
             logging.info(f"Successfully received response from {provider_name}.")
-            print(f"Assistant: {response}")
+            # print(f"Assistant: {response}")
             return response
 
         except Exception as e:
